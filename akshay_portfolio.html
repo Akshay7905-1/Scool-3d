@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Akshay Pratap Singh — Player Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #050a0f;
+      --panel: #0a1520;
+      --border: #0ff;
+      --accent: #00ffe7;
+      --accent2: #ff3cac;
+      --accent3: #ffe600;
+      --text: #c8f0ff;
+      --dim: #4a7a99;
+      --glow: 0 0 12px var(--accent), 0 0 30px rgba(0,255,231,0.3);
+      --glow2: 0 0 12px var(--accent2), 0 0 30px rgba(255,60,172,0.3);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* Custom cursor */
+    #cursor {
+      width: 18px; height: 18px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 9999;
+      transition: transform 0.1s, background 0.2s;
+      mix-blend-mode: screen;
+    }
+    #cursor.clicked { background: var(--accent); transform: scale(0.6); }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,231,0.015) 2px,
+        rgba(0,255,231,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Grid background */
+    .grid-bg {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,231,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,231,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main { position: relative; z-index: 1; }
+
+    /* ─── HEADER / BOOT SCREEN ─── */
+    header {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .boot-lines {
+      position: absolute;
+      top: 2rem; left: 2rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--dim);
+      text-align: left;
+      opacity: 0;
+      animation: fadeIn 0.5s 0.2s forwards;
+    }
+    .boot-lines span { display: block; }
+
+    .player-badge {
+      border: 1px solid var(--accent);
+      padding: 0.3rem 1rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--glow);
+      opacity: 0;
+      animation: fadeIn 0.5s 0.6s forwards;
+    }
+
+    .hero-name {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: clamp(2.4rem, 7vw, 5.5rem);
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      animation: slideUp 0.8s 0.8s cubic-bezier(.16,1,.3,1) forwards;
+    }
+
+    .hero-subtitle {
+      margin-top: 1rem;
+      font-size: 1.05rem;
+      color: var(--dim);
+      font-family: 'Share Tech Mono', monospace;
+      letter-spacing: 2px;
+      opacity: 0;
+      animation: fadeIn 0.6s 1.4s forwards;
+    }
+    .hero-subtitle span { color: var(--accent); }
+
+    /* XP Bar */
+    .xp-section {
+      margin-top: 2.5rem;
+      width: min(420px, 90vw);
+      opacity: 0;
+      animation: fadeIn 0.6s 1.8s forwards;
+    }
+    .xp-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--dim);
+      margin-bottom: 0.4rem;
+    }
+    .xp-track {
+      height: 8px;
+      background: rgba(0,255,231,0.1);
+      border: 1px solid rgba(0,255,231,0.25);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .xp-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 4px;
+      transition: width 2s 2.2s cubic-bezier(.16,1,.3,1);
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--dim);
+      letter-spacing: 2px;
+      animation: blink 1.5s infinite;
+    }
+
+    /* ─── SECTION WRAPPER ─── */
+    section {
+      padding: 5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent2);
+      letter-spacing: 3px;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1.4rem, 3vw, 2.2rem);
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+    .section-title::after {
+      content: '';
+      display: block;
+      margin-top: 0.6rem;
+      width: 60px;
+      height: 2px;
+      background: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    /* ─── STATS GRID ─── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid rgba(0,255,231,0.2);
+      padding: 1.5rem;
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--accent);
+      box-shadow: var(--glow);
+    }
+    .stat-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+    }
+    .stat-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .stat-name {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--dim);
+      letter-spacing: 2px;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ─── SKILL BARS ─── */
+    .skills-list { display: flex; flex-direction: column; gap: 1.3rem; }
+
+    .skill-row {}
+    .skill-top {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      margin-bottom: 0.4rem;
+    }
+    .skill-name { color: var(--text); }
+    .skill-pct { color: var(--accent); }
+    .skill-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .skill-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 8px var(--accent);
+      transition: width 1.4s cubic-bezier(.16,1,.3,1);
+    }
+
+    /* ─── QUEST LOG (projects) ─── */
+    .quest-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.4rem;
+    }
+
+    .quest-card {
+      background: var(--panel);
+      border: 1px solid rgba(0,255,231,0.15);
+      border-radius: 4px;
+      padding: 1.8rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .quest-card:hover {
+      border-color: var(--accent2);
+      transform: translateY(-5px);
+    }
+    .quest-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 60px; height: 60px;
+      border-top: 1px solid rgba(255,60,172,0.3);
+      border-left: 1px solid rgba(255,60,172,0.3);
+      border-radius: 0 0 0 4px;
+    }
+    .quest-status {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      padding: 0.2rem 0.6rem;
+      border-radius: 2px;
+      display: inline-block;
+      margin-bottom: 0.8rem;
+    }
+    .status-complete { color: var(--accent); border: 1px solid var(--accent); background: rgba(0,255,231,0.07); }
+    .status-active { color: var(--accent3); border: 1px solid var(--accent3); background: rgba(255,230,0,0.07); }
+    .status-planned { color: var(--dim); border: 1px solid var(--dim); }
+
+    .quest-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.6rem;
+    }
+    .quest-desc {
+      font-size: 0.85rem;
+      color: var(--dim);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    .quest-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--accent2);
+      border: 1px solid rgba(255,60,172,0.3);
+      padding: 0.15rem 0.5rem;
+      border-radius: 2px;
+    }
+
+    /* ─── ACHIEVEMENT BADGES ─── */
+    .badges-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 1rem;
+    }
+    .badge {
+      background: var(--panel);
+      border: 1px solid rgba(0,255,231,0.12);
+      border-radius: 6px;
+      padding: 1.2rem 0.8rem;
+      text-align: center;
+      transition: border-color 0.3s, transform 0.3s;
+      cursor: default;
+    }
+    .badge:hover {
+      border-color: var(--accent3);
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(255,230,0,0.1);
+    }
+    .badge-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .badge-name {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--dim);
+      letter-spacing: 1px;
+    }
+
+    /* ─── CONTACT ─── */
+    .contact-box {
+      background: var(--panel);
+      border: 1px solid rgba(0,255,231,0.2);
+      border-radius: 6px;
+      padding: 3rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .contact-box::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,255,231,0.04) 0%, transparent 70%);
+    }
+    .contact-box h3 {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.4rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    .contact-box p {
+      color: var(--dim);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .btn {
+      display: inline-block;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 0.9rem 2.2rem;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      background: transparent;
+      cursor: pointer;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s;
+    }
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(.16,1,.3,1);
+      z-index: 0;
+    }
+    .btn:hover { color: var(--bg); box-shadow: var(--glow); }
+    .btn:hover::before { transform: translateX(0); }
+    .btn span { position: relative; z-index: 1; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; right: 0;
+      padding: 1.2rem 2rem;
+      z-index: 200;
+      display: flex;
+      gap: 1.5rem;
+    }
+    nav a {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--dim);
+      text-decoration: none;
+      letter-spacing: 2px;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--accent); }
+
+    /* ─── DIVIDER ─── */
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(0,255,231,0.08);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--dim);
+      letter-spacing: 2px;
+    }
+    footer span { color: var(--accent2); }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 8px var(--accent); }
+      50% { box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(0,255,231,0.4); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.16,1,.3,1);
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* Level badge */
+    .level-ring {
+      width: 90px; height: 90px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      margin: 0 auto 2rem;
+      box-shadow: var(--glow);
+      animation: pulse 3s infinite;
+      opacity: 0;
+      animation: pulse 3s infinite, fadeIn 0.6s 0.4s forwards;
+    }
+    .level-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .level-lbl {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.5rem;
+      color: var(--dim);
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div class="grid-bg"></div>
+
+<nav>
+  <a href="#stats">STATS</a>
+  <a href="#skills">SKILLS</a>
+  <a href="#quests">QUESTS</a>
+  <a href="#contact">CONTACT</a>
+</nav>
+
+<main>
+  <!-- ── HERO ── -->
+  <header>
+    <div class="boot-lines">
+      <span>// SYSTEM BOOT v12.0</span>
+      <span>// LOADING PLAYER PROFILE...</span>
+      <span>// STATUS: ONLINE ██████████ 100%</span>
+    </div>
+
+    <div class="level-ring">
+      <div class="level-num">12</div>
+      <div class="level-lbl">LEVEL</div>
+    </div>
+
+    <div class="player-badge">▶ PLAYER ONE IDENTIFIED</div>
+    <h1 class="hero-name">Akshay<br/>Pratap Singh</h1>
+    <p class="hero-subtitle">
+      <span>Tech Enthusiast</span> &nbsp;·&nbsp;
+      <span>AI Explorer</span> &nbsp;·&nbsp;
+      <span>Python Game Dev</span>
+    </p>
+
+    <div class="xp-section">
+      <div class="xp-label">
+        <span>XP PROGRESS</span>
+        <span>CLASS 12 → NEXT LEVEL</span>
+      </div>
+      <div class="xp-track">
+        <div class="xp-fill" id="xpBar"></div>
+      </div>
+    </div>
+
+    <p class="scroll-hint">▼ SCROLL TO EXPLORE ▼</p>
+  </header>
+
+  <!-- ── PLAYER STATS ── -->
+  <section id="stats">
+    <p class="section-tag">// 01_PLAYER_STATS</p>
+    <h2 class="section-title">Character Profile</h2>
+    <div class="stats-grid reveal">
+      <div class="stat-card">
+        <div class="stat-icon">🎓</div>
+        <div class="stat-name">CURRENT CLASS</div>
+        <div class="stat-value">XII</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-name">SPECIALIZATION</div>
+        <div class="stat-value" style="font-size:1rem; color: var(--accent2);">AI / ML</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🐍</div>
+        <div class="stat-name">PRIMARY WEAPON</div>
+        <div class="stat-value" style="font-size:1rem;">Python</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎮</div>
+        <div class="stat-name">GUILD</div>
+        <div class="stat-value" style="font-size:0.9rem; color: var(--accent3);">GAME DEV</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider"/>
+
+  <!-- ── SKILLS ── -->
+  <section id="skills">
+    <p class="section-tag">// 02_SKILL_TREE</p>
+    <h2 class="section-title">Abilities Unlocked</h2>
+    <div class="skills-list reveal" id="skillsContainer">
+      <div class="skill-row">
+        <div class="skill-top"><span class="skill-name">Python</span><span class="skill-pct">88%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="88"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-top"><span class="skill-name">Game Development (Pygame)</span><span class="skill-pct">80%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="80"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-top"><span class="skill-name">Artificial Intelligence</span><span class="skill-pct">72%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="72"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-top"><span class="skill-name">Machine Learning</span><span class="skill-pct">65%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="65"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-top"><span class="skill-name">Web Technologies (HTML/CSS)</span><span class="skill-pct">60%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="60"></div></div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-top"><span class="skill-name">Problem Solving</span><span class="skill-pct">90%</span></div>
+        <div class="skill-bar"><div class="skill-fill" data-w="90"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider"/>
+
+  <!-- ── QUEST LOG ── -->
+  <section id="quests">
+    <p class="section-tag">// 03_QUEST_LOG</p>
+    <h2 class="section-title">Active Quests</h2>
+    <div class="quest-grid reveal">
+      <div class="quest-card">
+        <div class="quest-status status-complete">◆ COMPLETED</div>
+        <div class="quest-title">Snake Game 2.0</div>
+        <div class="quest-desc">A classic Snake game rebuilt in Python with Pygame, featuring custom speed modes and high-score tracking.</div>
+        <div class="quest-tags">
+          <span class="tag">Python</span>
+          <span class="tag">Pygame</span>
+          <span class="tag">OOP</span>
+        </div>
+      </div>
+      <div class="quest-card">
+        <div class="quest-status status-active">▶ IN PROGRESS</div>
+        <div class="quest-title">AI Chatbot Engine</div>
+        <div class="quest-desc">Building a conversational AI assistant using NLP libraries and Python as part of my AI exploration journey.</div>
+        <div class="quest-tags">
+          <span class="tag">Python</span>
+          <span class="tag">NLP</span>
+          <span class="tag">AI</span>
+        </div>
+      </div>
+      <div class="quest-card">
+        <div class="quest-status status-active">▶ IN PROGRESS</div>
+        <div class="quest-title">Class XII Board Exam</div>
+        <div class="quest-desc">The ultimate boss fight — balancing academics with tech passion. Strategy: study smart, code smarter.</div>
+        <div class="quest-tags">
+          <span class="tag">Academics</span>
+          <span class="tag">Physics</span>
+          <span class="tag">CS</span>
+        </div>
+      </div>
+      <div class="quest-card">
+        <div class="quest-status status-planned">◇ PLANNED</div>
+        <div class="quest-title">ML Model: Image Classifier</div>
+        <div class="quest-desc">Planning to build an image classification model using TensorFlow/Keras after board exams wrap up.</div>
+        <div class="quest-tags">
+          <span class="tag">TensorFlow</span>
+          <span class="tag">ML</span>
+          <span class="tag">CV</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider"/>
+
+  <!-- ── ACHIEVEMENTS ── -->
+  <section>
+    <p class="section-tag">// 04_ACHIEVEMENTS</p>
+    <h2 class="section-title">Badges Earned</h2>
+    <div class="badges-grid reveal">
+      <div class="badge">
+        <div class="badge-icon">🐍</div>
+        <div class="badge-name">PYTHON CODER</div>
+      </div>
+      <div class="badge">
+        <div class="badge-icon">🎮</div>
+        <div class="badge-name">GAME MAKER</div>
+      </div>
+      <div class="badge">
+        <div class="badge-icon">🤖</div>
+        <div class="badge-name">AI PIONEER</div>
+      </div>
+      <div class="badge">
+        <div class="badge-icon">⚡</div>
+        <div class="badge-name">FAST LEARNER</div>
+      </div>
+      <div class="badge">
+        <div class="badge-icon">🔬</div>
+        <div class="badge-name">RESEARCHER</div>
+      </div>
+      <div class="badge">
+        <div class="badge-icon">🌐</div>
+        <div class="badge-name">WEB BUILDER</div>
+      </div>
+      <div class="badge">
+        <div class="badge-icon">🏆</div>
+        <div class="badge-name">SELF-TAUGHT</div>
+      </div>
+      <div class="badge">
+        <div class="badge-icon">🚀</div>
+        <div class="badge-name">FUTURE READY</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider"/>
+
+  <!-- ── CONTACT ── -->
+  <section id="contact">
+    <p class="section-tag">// 05_SEND_MESSAGE</p>
+    <h2 class="section-title">Initiate Contact</h2>
+    <div class="contact-box reveal">
+      <h3>Ready to collaborate on a new quest?</h3>
+      <p>Whether it's AI, game dev, or building something awesome — I'm in.</p>
+      <a class="btn" href="mailto:akshay@example.com"><span>▶ SEND SIGNAL</span></a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>AKSHAY PRATAP SINGH &nbsp;·&nbsp; CLASS XII &nbsp;·&nbsp; <span>PLAYER SINCE 2006</span> &nbsp;·&nbsp; ALL RIGHTS RESERVED</p>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX - 9 + 'px';
+    cursor.style.top = e.clientY - 9 + 'px';
+  });
+  document.addEventListener('mousedown', () => cursor.classList.add('clicked'));
+  document.addEventListener('mouseup', () => cursor.classList.remove('clicked'));
+
+  // XP bar fill
+  setTimeout(() => {
+    document.getElementById('xpBar').style.width = '73%';
+  }, 100);
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        // Animate skill bars when visible
+        e.target.querySelectorAll('.skill-fill').forEach(bar => {
+          bar.style.width = bar.dataset.w + '%';
+        });
+      }
+    });
+  }, { threshold: 0.15 });
+  reveals.forEach(r => observer.observe(r));
+</script>
+</body>
+</html>
